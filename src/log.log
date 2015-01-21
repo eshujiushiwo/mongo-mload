@@ -1,0 +1,9 @@
+
+2015/01/21 17:04:03 mload.go:217: =====job start.=====
+
+2015/01/21 17:04:03 mload.go:218: start init colletion
+
+2015/01/21 17:04:03 mload.go:101: Connect to 10.96.29.2 UserName is   PassWord is  Success
+
+2015/01/21 17:04:03 mload.go:291: =====Done.=====
+{0 0} 0x1063c1c0 {{mongobench.data_test map[Num:1] 0 0 <nil> 0 <nil> {<nil> <nil> <nil> false false [] 0} false []} 0.25 0}}

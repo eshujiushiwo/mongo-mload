@@ -21,6 +21,7 @@ var logger *log.Logger
 var datainfo *Datainfo
 var jsondata = make(map[string]interface{})
 var jsonMap = make(map[string]interface{})
+var r *rand.Rand
 
 type Mongobench struct {
 	host            string
@@ -104,7 +105,7 @@ func (mongobench *Mongobench) Conn(mongoDBUrl string) {
 }
 
 func (mongobench *Mongobench) InsertData(jsoninfo string, ch chan int) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	datainfo := Datainfo{"Edison", 1}
 	for i := 0; i < mongobench.datanum; i++ {
 
@@ -130,14 +131,53 @@ func (mongobench *Mongobench) InsertData(jsoninfo string, ch chan int) {
 
 }
 
+func (mongobench *Mongobench) QueryData(all bool, ch chan int) {
+
+	datainfo := Datainfo{"Edison", 1}
+	if all == true {
+		result1 := []int{}
+		for i := 0; i < mongobench.datanum; i++ {
+
+			b := datainfo.Num * r.Intn(mongobench.datanum)
+			query := bson.M{"Num": b}
+			mongobench.mongoCollection.Find(query).All(&result1)
+
+		}
+	} else {
+
+		var result1 interface{}
+		for i := 0; i < mongobench.datanum; i++ {
+
+			b := datainfo.Num * r.Intn(mongobench.datanum)
+			query := bson.M{"Num": b}
+			mongobench.mongoCollection.Find(query).One(&result1)
+
+		}
+	}
+	ch <- 1
+
+}
+func (mongobench *Mongobench) CleanJob() {
+	logger.Println("Start clean database :mongobench")
+	mongobench.mongoDatabase.DropDatabase()
+
+}
+func (mongobench *Mongobench) AddIndex() {
+	logger.Println("Start build index Num")
+
+	mongobench.mongoCollection.EnsureIndexKey("Num")
+}
+
 func main() {
 	var host, userName, passWord, port, logpath, jsonfile string
-	var insert bool
+	var operation string
+	var queryall, clean bool
 	var cpunum, datanum, procnum int
 	var err1 error
 	var multi_logfile []io.Writer
-	//The DataInfo
-	//datainfo := Datainfo{"Edison", 1}
+
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	flag.StringVar(&host, "host", "", "The mongodb host")
 	flag.StringVar(&userName, "userName", "", "The mongodb username")
 	flag.StringVar(&passWord, "passWord", "", "The mongodb password")
@@ -147,7 +187,9 @@ func main() {
 	flag.IntVar(&procnum, "procnum", 4, "The proc num ")
 	flag.StringVar(&logpath, "logpath", "./log.log", "the log path ")
 	flag.StringVar(&jsonfile, "jsonfile", "", "the json file u wanna insert(only one json )")
-	flag.BoolVar(&insert, "insert", false, "set true to do insert ")
+	flag.StringVar(&operation, "operation", "", "the operation ")
+	flag.BoolVar(&queryall, "queryall", false, "query all or limit one")
+	flag.BoolVar(&clean, "clean", false, "Drop the Database mongobench")
 	flag.Parse()
 
 	logfile, err1 = os.OpenFile(logpath, os.O_RDWR|os.O_CREATE, 0666)
@@ -165,7 +207,7 @@ func main() {
 
 	mongourl := GetMongoDBUrl(host, userName, passWord, port)
 
-	if host != "" {
+	if host != "" && operation != "" && clean == false {
 		logger.Println("=====job start.=====")
 		logger.Println("start init colletion")
 		mongobench := Newmongobench(host, userName, passWord, port, cpunum, datanum, procnum)
@@ -182,7 +224,7 @@ func main() {
 			}
 		}
 
-		if insert == true {
+		if operation == "insert" {
 			chs := make([]chan int, mongobench.procnum)
 			runtime.GOMAXPROCS(mongobench.cpunum)
 			for i := 0; i < mongobench.procnum; i++ {
@@ -201,10 +243,57 @@ func main() {
 				<-cha
 
 			}
+		} else if operation == "prepare" {
+			chs := make([]chan int, mongobench.procnum)
+			runtime.GOMAXPROCS(mongobench.cpunum)
+			for i := 0; i < mongobench.procnum; i++ {
+				fmt.Println(i)
+
+				chs[i] = make(chan int)
+
+				go mongobench.InsertData("no", chs[i])
+
+			}
+
+			for _, cha := range chs {
+				<-cha
+
+			}
+			mongobench.AddIndex()
+
+		} else if operation == "query" {
+			chs := make([]chan int, mongobench.procnum)
+			runtime.GOMAXPROCS(mongobench.cpunum)
+			for i := 0; i < mongobench.procnum; i++ {
+				fmt.Println(i)
+
+				chs[i] = make(chan int)
+
+				go mongobench.QueryData(queryall, chs[i])
+
+			}
+
+			for _, cha := range chs {
+				<-cha
+
+			}
+
 		} else {
-			logger.Println("insert is set to ", insert)
+			fmt.Println("Only support operation prepare/insert/query!")
+
 		}
+
 		logger.Println("=====Done.=====")
+	} else if host != "" && clean == true {
+
+		logger.Println("=====job start.=====")
+		logger.Println("start init colletion")
+
+		mongobench := Newmongobench(host, userName, passWord, port, cpunum, datanum, procnum)
+
+		mongobench.Conn(mongourl)
+		defer mongobench.mongoClient.Close()
+		mongobench.CleanJob()
 	} else {
 		fmt.Println("Please use -help to check the usage")
 		fmt.Println("At least need host parameter")
