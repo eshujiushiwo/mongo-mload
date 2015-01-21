@@ -6,6 +6,7 @@
  MongoDB 压力测试工具
 
 ##2015.01.21更新：
+		暂时日志功未完善，请用mongostat来观察pqs等
 		增加了查询压测（两种模式）
 		增加了清理功能
 		增加了参数operation,queryall,clean
