@@ -262,6 +262,7 @@ func main() {
 			mongobench.AddIndex()
 
 		} else if operation == "query" {
+
 			chs := make([]chan int, mongobench.procnum)
 			runtime.GOMAXPROCS(mongobench.cpunum)
 			for i := 0; i < mongobench.procnum; i++ {
@@ -273,6 +274,38 @@ func main() {
 
 			}
 
+			for _, cha := range chs {
+				<-cha
+
+			}
+
+		} else if operation == "tps" {
+			//query
+			chs := make([]chan int, mongobench.procnum)
+			runtime.GOMAXPROCS(mongobench.cpunum)
+			for i := 0; i < mongobench.procnum; i++ {
+				fmt.Println(i)
+
+				chs[i] = make(chan int)
+
+				go mongobench.QueryData(queryall, chs[i])
+
+			}
+			//insert
+			chs1 := make([]chan int, mongobench.procnum)
+			runtime.GOMAXPROCS(mongobench.cpunum)
+			for i := 0; i < mongobench.procnum; i++ {
+				fmt.Println(i)
+
+				chs1[i] = make(chan int)
+
+				go mongobench.InsertData("no", chs1[i])
+
+			}
+			for _, chb := range chs1 {
+				<-chb
+
+			}
 			for _, cha := range chs {
 				<-cha
 
