@@ -5,11 +5,10 @@
 ## 功能
  MongoDB 压力测试工具
 
-##2015.01.21更新：
+##2015.02.3更新：
 		暂时日志功未完善，请用mongostat来观察pqs等
-		增加了查询压测（两种模式）
-		增加了清理功能
-		增加了参数operation,queryall,clean
+		增加了tps（读写） 模式
+
 
 ## 参数
 		--host   	 压测目标（如127.0.0.1）
@@ -21,7 +20,7 @@
 		--datanum	 每个线程插入数据条数（默认10000）
 		--logpath	 日志路径（默认./log.log）
 		--jsonfile	 希望插入document路径（不选用该参数则使用默认的插入格式）
-		--operation	 压测模式（insert,prepare,query）prepare模式会在插入完成后为查询会用的项添加索引
+		--operation	 压测模式（insert,prepare,query,tps）prepare模式会在插入完成后为查询会用的项添加索引
 		--queryall	 压测模式为query的时候，是否返回所有查询到的结果（默认false，即db.xx.findOne()）
 		--clean		 是否清理数据(默认false，如果为true将drop数据库mongobench)
 
@@ -51,7 +50,14 @@
 		在进行非limit one的：
 		使用8核cpu，8个并发
 		go run mload.go --host xxx.xxx.xxx.xxx --datanum 1000000 --procnum 8 --cpunum 8 --operation query --logpath /tmp/log.log  --queryall true
+###读写测试
+		首先清理数据库：
+		go run mload.go --host xxx.xxx.xxx.xxx --clean true
 
+		再来为查询准备数据（比如准备1000000条）：
+		go run mload.go --host xxx.xxx.xxx.xxx --datanum 1000000 --procnum 1 --logpath /tmp/log.log --operation prepare
+		再来进行测试		
+		go run mload.go --host xxx.xxx.xxx.xxx --datanum 1000000 --procnum 1 --logpath /tmp/log.log --operation tps
 
 
 
