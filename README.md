@@ -25,10 +25,11 @@
 	  --queryall	       压测模式为query的时候，是否返回所有查询到的结果（默认false，即db.xx.findOne()）
 	  --clean		       是否清理数据(默认false，如果为true将drop数据库mongobench)
 	  --geo          是否进行空间地理数据的测试（默认false, 即普通查询和索引；true 则使用经纬度类型数据进行查询）
-    ---geofield          空间地理查询测试使用的2d sphere字段名称（默认 loc）
+	  --geofield          空间地理查询测试使用的2d sphere字段名称（默认 loc）
+ 
 
 ##测试实例
- // --logpath /tmp/log.log
+ 
 ###插入测试
 		首先清理数据库：
 		go run mload.go --host 127.0.0.1 --clean true
